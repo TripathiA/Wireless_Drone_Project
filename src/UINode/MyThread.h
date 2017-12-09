@@ -21,6 +21,8 @@ public:
 
 protected:
    virtual void run();
+   double check_signal_strength(int sec);
+   void move(double ss);
 
 // signals:
 //    void signalValueUpdated(QString);

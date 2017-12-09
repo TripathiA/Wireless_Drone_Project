@@ -85,10 +85,10 @@ void RosThread::navdataCb(const ardrone_autonomy::NavdataConstPtr navdataPtr)
 	{
 		char buf[200];
 		snprintf(buf,200,"Motors: %f %f %f %f",
-				(float)navdataPtr->motor1,
-				(float)navdataPtr->motor2,
-				(float)navdataPtr->motor3,
-				(float)navdataPtr->motor4);
+				((float)navdataPtr->motor1)*0.01,
+				((float)navdataPtr->motor2)*0.01,
+				((float)navdataPtr->motor3)*0.01,
+				((float)navdataPtr->motor4)*0.01);
 		gui->setMotorSpeeds(std::string(buf));
 	}
 	navdataCount++;

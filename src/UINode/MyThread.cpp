@@ -9,6 +9,9 @@
 #include <sstream>
 #include <string>
 
+#define THRESHOLD_STRENGTH 61
+
+
 MyThread::MyThread()
 {
     gui = NULL;
@@ -18,6 +21,111 @@ MyThread::MyThread()
 void MyThread::startSystem()
 {
         start();
+}
+
+double MyThread::check_signal_strength(int sec)
+{
+	FILE *fp;
+	int status;
+	char strengthString[4];
+	time_t start;
+	time_t now;
+	int64_t sum;
+	int64_t count;
+
+	start = time(0);
+	now = time(0);
+	sum = 0;
+	count = 0;
+	
+	while (now - start < sec) {
+		fp = popen("iwconfig wlp1s0 | grep Signal | cut -d\"=\" -f3|cut -d\" \" -f1", "r");
+		if (fp == NULL) {
+			perror("popen");
+			exit(1);
+		}
+
+		if (fgets(strengthString, 4, fp) == NULL) {
+			printf("can't get signal strength!\n");
+			exit(1);
+		}
+
+		sum += atoi(strengthString);
+		count += 1;
+
+		if (pclose(fp) < 0) {
+			perror("pclose");
+			exit(1);
+		}
+
+		now = time(0);
+	}
+	double signal_strength = -1 * (sum/count);
+	return signal_strength;
+}
+
+void MyThread::move(double init_ss)
+{
+	double curr_ss = init_ss;
+	// i - 73 - forward
+	// k - 75 - backwards
+	// j - 74 - left
+	// l - 76 - right
+	// q - 81 - up
+	// a - 65 - down
+	// u - 85 - clokwise
+	// o - 79 - counterclockwise
+	int moves[] = {73,75,74,76};
+	int neg_move = 0;
+	for(int i = 0 ;i < 4; i++)
+	{
+		if(i%2 == 0) neg_move = moves[i+1];
+		else neg_move = moves[i-1];
+		
+		printf("MY :: trying moving %d at %f\n",moves[i],time(0));
+
+		QKeyEvent *event = new QKeyEvent(QKeyEvent::KeyPress, moves[i], Qt::NoModifier);
+        	gui->keyPressEvent(event);
+        	sleep(1);
+        	QKeyEvent *release = new QKeyEvent(QKeyEvent::KeyRelease, moves[i], Qt::NoModifier);
+        	gui->keyReleaseEvent(release);
+
+		double signal_strength = check_signal_strength(10);
+		printf("MY :: Average Signal Strength: %f dbm at %f\n", signal_strength,time(0));
+
+		if(init_ss - signal_strength  >= 2 || signal_strength <= THRESHOLD_STRENGTH )
+		{
+			printf("MY :: got better\n");
+			if(signal_strength <= THRESHOLD_STRENGTH)
+			{
+				printf("MY :: now better\n");
+				return;
+			}
+			else
+			{
+				printf("MY :: making more better moving %d \n",moves[i]);
+				while(signal_strength > THRESHOLD_STRENGTH)
+				{
+					QKeyEvent *event = new QKeyEvent(QKeyEvent::KeyPress, moves[i], Qt::NoModifier);
+                			gui->keyPressEvent(event);
+                			sleep(1);
+                			QKeyEvent *release = new QKeyEvent(QKeyEvent::KeyRelease, moves[i], Qt::NoModifier);
+                			gui->keyReleaseEvent(release);
+				}
+				return;
+			}
+		}
+		else
+		{
+			printf("MY :: got worse moving %d\n",neg_move);
+			QKeyEvent *event = new QKeyEvent(QKeyEvent::KeyPress, neg_move, Qt::NoModifier);
+                	gui->keyPressEvent(event);
+                	sleep(1);
+                	QKeyEvent *release = new QKeyEvent(QKeyEvent::KeyRelease, neg_move, Qt::NoModifier);
+                	gui->keyReleaseEvent(release);
+
+		}
+	}
 }
 
 
@@ -35,23 +143,38 @@ void MyThread::run()
 
     int i = 0;
     int diff = 10;
-    while(i < 5)
-    {
-        time_t now = time(0);
-        while((now-start) < diff) now = time(0);
-        snprintf(nowbuff, 16, "%lu ", now);
-        snprintf(startbuff, 16, "%lu\n", start);
-        printf("%s", nowbuff);
-        printf("%s", startbuff);
-        QKeyEvent *event = new QKeyEvent(QKeyEvent::KeyPress, 73, Qt::NoModifier);
-        gui->keyPressEvent(event);
-        sleep(1);
-        QKeyEvent *release = new QKeyEvent(QKeyEvent::KeyRelease, 73, Qt::NoModifier);
-        gui->keyReleaseEvent(release);
-        start = now;
-        i++;
-        diff = 5;
+
+
+    while (1) {
+
+	double signal_strength = check_signal_strength(10);
+	printf("MY :: Average Signal Strength :: run: %f dbm\n", signal_strength);
+
+
+	if(signal_strength > THRESHOLD_STRENGTH)
+	{
+		printf("MY :: SS DROPPED\n");
+		move(signal_strength);
+	}
     }
+
+   // while(i < 5)
+   // {
+   //     time_t now = time(0);
+   //     while((now-start) < diff) now = time(0);
+   //     snprintf(nowbuff, 16, "%lu ", now);
+   //     snprintf(startbuff, 16, "%lu\n", start);
+   //     printf("%s", nowbuff);
+   //     printf("%s", startbuff);
+   //     QKeyEvent *event = new QKeyEvent(QKeyEvent::KeyPress, 73, Qt::NoModifier);
+   //     gui->keyPressEvent(event);
+   //     sleep(1);
+   //     QKeyEvent *release = new QKeyEvent(QKeyEvent::KeyRelease, 73, Qt::NoModifier);
+   //     gui->keyReleaseEvent(release);
+   //     start = now;
+   //     i++;
+   //     diff = 5;
+   // }
 
     printf("done\n");
     close(f);
