@@ -86,7 +86,7 @@ void MyThread::move(double init_ss)
 
 		QKeyEvent *event = new QKeyEvent(QKeyEvent::KeyPress, moves[i], Qt::NoModifier);
         	gui->keyPressEvent(event);
-        	sleep(1);
+        	usleep(100000);
         	QKeyEvent *release = new QKeyEvent(QKeyEvent::KeyRelease, moves[i], Qt::NoModifier);
         	gui->keyReleaseEvent(release);
 
@@ -108,9 +108,11 @@ void MyThread::move(double init_ss)
 				{
 					QKeyEvent *event = new QKeyEvent(QKeyEvent::KeyPress, moves[i], Qt::NoModifier);
                 			gui->keyPressEvent(event);
-                			sleep(1);
+                			usleep(100000);
                 			QKeyEvent *release = new QKeyEvent(QKeyEvent::KeyRelease, moves[i], Qt::NoModifier);
                 			gui->keyReleaseEvent(release);
+					double signal_strength = check_signal_strength(5);
+                			printf("MY :: Average Signal Strength: %f dbm at %f\n", signal_strength,time(0));
 				}
 				return;
 			}
@@ -120,7 +122,7 @@ void MyThread::move(double init_ss)
 			printf("MY :: got worse moving %d\n",neg_move);
 			QKeyEvent *event = new QKeyEvent(QKeyEvent::KeyPress, neg_move, Qt::NoModifier);
                 	gui->keyPressEvent(event);
-                	sleep(1);
+                	usleep(100000);
                 	QKeyEvent *release = new QKeyEvent(QKeyEvent::KeyRelease, neg_move, Qt::NoModifier);
                 	gui->keyReleaseEvent(release);
 
@@ -168,7 +170,7 @@ void MyThread::run()
    //     printf("%s", startbuff);
    //     QKeyEvent *event = new QKeyEvent(QKeyEvent::KeyPress, 73, Qt::NoModifier);
    //     gui->keyPressEvent(event);
-   //     sleep(1);
+   //     usleep(100000);
    //     QKeyEvent *release = new QKeyEvent(QKeyEvent::KeyRelease, 73, Qt::NoModifier);
    //     gui->keyReleaseEvent(release);
    //     start = now;
